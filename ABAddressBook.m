@@ -71,6 +71,9 @@ static void _ExternalChangeCallback( ABAddressBookRef bookRef, CFDictionaryRef i
     [obj _handleExternalChangeCallback];
 }
 
+
+typedef void (*ABRegistrationFunction)(ABAddressBookRef, ABExternalChangeCallback, void *);
+
 @implementation ABAddressBook
 
 @synthesize addressBookRef=_ref;
@@ -103,7 +106,7 @@ static void _ExternalChangeCallback( ABAddressBookRef bookRef, CFDictionaryRef i
     // we can't to CFTypeID checking on AB types, so we have to trust the user
     _ref = (ABAddressBookRef) CFRetain(ref);
 	
-	ABAddressBookRegisterExternalChangeCallback( _ref, _ExternalChangeCallback, self );
+	[self setShouldObserveChanges:YES]; //observe address book changes by default.
     
     return ( self );
 }
@@ -142,6 +145,30 @@ static void _ExternalChangeCallback( ABAddressBookRef bookRef, CFDictionaryRef i
 	BOOL result = (BOOL) ABAddressBookSave(_ref, (CFErrorRef *)error);
 	[[NSNotificationCenter defaultCenter] postNotificationName:ABAddressBookDidChangeNotification object:self];
     return ( result );
+}
+
+
+@synthesize shouldObserveChanges = _observingChanges;
+
+- (void) setShouldObserveChanges:(BOOL) observe {
+
+    if(_observingChanges == observe) return;
+
+    //At this point, we know that we must flip the BOOL and call
+    //the appropriate function to either register or unregister
+    //our callback function.
+     
+    //If we're currently registered, unregister - and vice versa.
+    ABRegistrationFunction funcPtrs[2] = {
+        ABAddressBookUnregisterExternalChangeCallback, //NO
+        ABAddressBookRegisterExternalChangeCallback    //YES
+    };
+     
+    //call the appropriate function:
+    funcPtrs[observe](_ref, _ExternalChangeCallback, self);
+
+    //flip the ivar to reflect the updated state:
+    _observingChanges = observe;
 }
 
 - (BOOL) hasUnsavedChanges

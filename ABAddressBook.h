@@ -55,6 +55,8 @@ enum
 {
     ABAddressBookRef            _ref;
     id<ABAddressBookDelegate>   _delegate;
+    
+    BOOL                        _observingChanges;
 }
 
 + (ABAddressBook *) sharedAddressBook;
@@ -65,6 +67,8 @@ enum
 
 - (BOOL) save: (NSError **) error;
 @property (nonatomic, readonly) BOOL hasUnsavedChanges;
+
+@property (nonatomic, getter = isObservingChanges) BOOL shouldObserveChanges;
 
 - (BOOL) addRecord: (ABRecord *) record error: (NSError **) error;
 - (BOOL) removeRecord: (ABRecord *) record error: (NSError **) error;
